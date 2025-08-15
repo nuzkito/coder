@@ -18,6 +18,16 @@ final readonly class LlmResponse
         return str($this->rawMessage())->before('<tool_call>')->trim();
     }
 
+    public function hasReasoning(): bool
+    {
+        return isset($this->response['choices'][0]['message']['reasoning']);
+    }
+
+    public function reasoning(): string
+    {
+        return $this->response['choices'][0]['message']['reasoning'] ?? '';
+    }
+
     public function hasToolCalls(): bool
     {
         return $this->hasToolCallsInResponse() || $this->hasToolCallsInMessage();

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Conversation;
 use App\LlmClient;
+use App\LlmResponse;
 use App\Message;
 use App\Tools;
 use App\Tools\CreateFileTool;
@@ -16,6 +17,7 @@ use App\Tools\ReadFileTool;
 use App\Tools\SearchFileInCodebase;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
+use Laravel\Prompts\Concerns\Colors;
 
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\intro;
@@ -26,6 +28,8 @@ use function Laravel\Prompts\textarea;
 
 final class Agent extends Command
 {
+    use Colors;
+
     /** @var string */
     protected $signature = 'agent';
 
@@ -64,7 +68,7 @@ final class Agent extends Command
             );
             if ($agentResponse->hasMessage()) {
                 $conversation->addMessage(Message::fromAssistant($agentResponse->message()));
-                $this->agentOutput($agentResponse->message());
+                $this->agentOutput($agentResponse);
             }
 
             while (true) {
@@ -88,7 +92,7 @@ final class Agent extends Command
                     );
                     if ($agentResponse->hasMessage()) {
                         $conversation->addMessage(Message::fromAssistant($agentResponse->message()));
-                        $this->agentOutput($agentResponse->message());
+                        $this->agentOutput($agentResponse);
                     }
                 } else {
                     break;
@@ -99,8 +103,14 @@ final class Agent extends Command
         outro('Chat ended.');
     }
 
-    private function agentOutput(string $message): void
+    private function agentOutput(LlmResponse $response): void
     {
-        note("\033[38;5;208mAgent:\033[0m {$message}");
+        if ($response->hasReasoning()) {
+            note($this->gray("Reasoning: {$response->reasoning()}"));
+        }
+
+        if ($response->hasMessage()) {
+            note("\033[38;5;208mAgent:\033[0m {$response->message()}");
+        }
     }
 }
