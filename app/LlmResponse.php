@@ -35,7 +35,7 @@ final readonly class LlmResponse
 
     private function hasToolCallsInResponse(): bool
     {
-        return isset($this->response['choices'][0]['message']['tool_calls']);
+        return isset($this->response['choices'][0]['message']['tool_calls']) && count($this->response['choices'][0]['message']['tool_calls']) > 0;
     }
 
     private function hasToolCallsInMessage(): bool
