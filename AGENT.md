@@ -18,8 +18,9 @@ Before proceeding with any task, you should analyze what needs to be done and cr
 
 # Project Specific Rules
 
-This app is a coding agent with AI capabilities that works on terminal. The user can interact with the agent using the console.
-The agent can use some tools to assist the user and help them to do the tasks proposed by the user.
+This app is a coding tool powered by a LLM that runs in the terminal.
+It provides a chat interface through which the user can interact with the LLM via the console.
+The LLM can use some tools to assist the user and help them to do the tasks proposed by the user.
 
 ## Architecture
 

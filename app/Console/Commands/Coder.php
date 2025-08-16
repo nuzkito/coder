@@ -26,15 +26,15 @@ use function Laravel\Prompts\outro;
 use function Laravel\Prompts\spin;
 use function Laravel\Prompts\textarea;
 
-final class Agent extends Command
+final class Coder extends Command
 {
     use Colors;
 
     /** @var string */
-    protected $signature = 'agent';
+    protected $signature = 'coder';
 
     /** @var string */
-    protected $description = 'Chat with an agent.';
+    protected $description = 'Chat with a LLM.';
 
     public function handle(): void
     {
@@ -52,28 +52,28 @@ final class Agent extends Command
         $conversation = new Conversation;
         $conversation->addMessage(Message::fromSystem(Storage::get('AGENT.md')));
 
-        intro('Starting a chat with an agent.');
+        intro('Starting a chat with a LLM.');
 
         while (true) {
-            $message = trim(textarea(label: 'You', hint: 'Send a message to the agent.'));
+            $message = trim(textarea(label: 'You', hint: 'Send a message to the LLM.'));
 
             if (! $message) {
                 break;
             }
 
             $conversation->addMessage(Message::fromUser($message));
-            $agentResponse = spin(
+            $llmResponse = spin(
                 callback: fn () => $client->sendMessage($conversation, $tools),
-                message: 'Waiting response from the agent.',
+                message: 'Waiting response from the LLM.',
             );
-            if ($agentResponse->hasMessage()) {
-                $conversation->addMessage(Message::fromAssistant($agentResponse->message()));
-                $this->agentOutput($agentResponse);
+            if ($llmResponse->hasMessage()) {
+                $conversation->addMessage(Message::fromAssistant($llmResponse->message()));
+                $this->llmOutput($llmResponse);
             }
 
             while (true) {
-                if ($agentResponse->hasToolCalls()) {
-                    $toolCalls = $agentResponse->toolCalls();
+                if ($llmResponse->hasToolCalls()) {
+                    $toolCalls = $llmResponse->toolCalls();
 
                     foreach ($toolCalls as $toolCall) {
                         $tool = $tools->findByName($toolCall['name']);
@@ -86,13 +86,13 @@ final class Agent extends Command
                         info(sprintf('Tool | %s: %s', $tool->name, $toolResult->description()));
                     }
 
-                    $agentResponse = spin(
+                    $llmResponse = spin(
                         callback: fn () => $client->sendMessage($conversation, $tools),
-                        message: 'Waiting response from the agent.',
+                        message: 'Waiting response from the LLM.',
                     );
-                    if ($agentResponse->hasMessage()) {
-                        $conversation->addMessage(Message::fromAssistant($agentResponse->message()));
-                        $this->agentOutput($agentResponse);
+                    if ($llmResponse->hasMessage()) {
+                        $conversation->addMessage(Message::fromAssistant($llmResponse->message()));
+                        $this->llmOutput($llmResponse);
                     }
                 } else {
                     break;
@@ -103,14 +103,14 @@ final class Agent extends Command
         outro('Chat ended.');
     }
 
-    private function agentOutput(LlmResponse $response): void
+    private function llmOutput(LlmResponse $response): void
     {
         if ($response->hasReasoning()) {
             note($this->gray("Reasoning: {$response->reasoning()}"));
         }
 
         if ($response->hasMessage()) {
-            note("\033[38;5;208mAgent:\033[0m {$response->message()}");
+            note("\033[38;5;208mLLM:\033[0m {$response->message()}");
         }
     }
 }

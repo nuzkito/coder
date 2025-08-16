@@ -1,4 +1,4 @@
-Start a new agent:
+Start a new chat:
 ```bash
-php artisan agent
+php artisan coder
 ```

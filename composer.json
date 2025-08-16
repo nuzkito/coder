@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "nuzkito/agent",
+    "name": "nuzkito/coder",
     "type": "project",
-    "description": "An agent with AI",
+    "description": "Make programming tasks with the help of LLMs",
     "keywords": [
         "laravel",
         "framework"
