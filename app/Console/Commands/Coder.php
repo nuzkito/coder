@@ -2,11 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Conversation;
-use App\LlmClient;
-use App\LlmResponse;
-use App\Message;
-use App\Tools;
 use App\Tools\CreateFileTool;
 use App\Tools\EditFileTool;
 use App\Tools\ExecuteCommandTool;
@@ -16,8 +11,13 @@ use App\Tools\ListFilesTool;
 use App\Tools\ReadFileTool;
 use App\Tools\SearchFileInCodebase;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Prompts\Concerns\Colors;
+use Prism\Prism\Prism;
+use Prism\Prism\Text\Response;
+use Prism\Prism\Text\Step;
+use Prism\Prism\ValueObjects\Messages\UserMessage;
 
 use function Laravel\Prompts\info;
 use function Laravel\Prompts\intro;
@@ -38,21 +38,9 @@ final class Coder extends Command
 
     public function handle(): void
     {
-        $tools = new Tools;
-        $tools->add(new GetTimeTool);
-        $tools->add(new CreateFileTool);
-        $tools->add(new ReadFileTool);
-        $tools->add(new ListFilesTool);
-        $tools->add(new ListDirectoriesTool);
-        $tools->add(new EditFileTool);
-        $tools->add(new ExecuteCommandTool);
-        $tools->add(new SearchFileInCodebase);
-
-        $client = new LlmClient;
-        $conversation = new Conversation;
-        $conversation->addMessage(Message::fromSystem(Storage::get('AGENT.md')));
-
         intro('Starting a chat with a LLM.');
+
+        $messages = collect();
 
         while (true) {
             $message = trim(textarea(label: 'You', hint: 'Send a message to the LLM.'));
@@ -61,41 +49,20 @@ final class Coder extends Command
                 break;
             }
 
-            $conversation->addMessage(Message::fromUser($message));
-            $llmResponse = spin(
-                callback: fn () => $client->sendMessage($conversation, $tools),
+            $response = spin(
+                callback: fn () => $this->sendMessage(new UserMessage($message), $messages),
                 message: 'Waiting response from the LLM.',
             );
-            if ($llmResponse->hasMessage()) {
-                $conversation->addMessage(Message::fromAssistant($llmResponse->message()));
-                $this->llmOutput($llmResponse);
-            }
 
-            while (true) {
-                if ($llmResponse->hasToolCalls()) {
-                    $toolCalls = $llmResponse->toolCalls();
+            $messages = $response->messages;
 
-                    foreach ($toolCalls as $toolCall) {
-                        $tool = $tools->findByName($toolCall['name']);
-                        $toolResult = spin(
-                            callback: fn () => $tool->execute($toolCall['arguments']),
-                            message: "Executing tool {$tool->name}.",
-                        );
+            foreach ($response->steps as $step) {
+                if ($step->toolCalls) {
+                    $this->toolOutput($step);
+                }
 
-                        $conversation->addMessage(Message::fromTool("Result of {$tool->name}: {$toolResult->content}"));
-                        info(sprintf('Tool | %s: %s', $tool->name, $toolResult->description()));
-                    }
-
-                    $llmResponse = spin(
-                        callback: fn () => $client->sendMessage($conversation, $tools),
-                        message: 'Waiting response from the LLM.',
-                    );
-                    if ($llmResponse->hasMessage()) {
-                        $conversation->addMessage(Message::fromAssistant($llmResponse->message()));
-                        $this->llmOutput($llmResponse);
-                    }
-                } else {
-                    break;
+                if ($step->text) {
+                    $this->llmOutput($step);
                 }
             }
         }
@@ -103,14 +70,45 @@ final class Coder extends Command
         outro('Chat ended.');
     }
 
-    private function llmOutput(LlmResponse $response): void
+    private function sendMessage(UserMessage $message, Collection $messages): Response
     {
-        if ($response->hasReasoning()) {
-            note($this->gray("Reasoning: {$response->reasoning()}"));
+        return Prism::text()
+            ->using(provider: 'lmstudio', model: env('LLM_MODEL'))
+            ->withMaxSteps(100)
+            ->withSystemPrompt(Storage::get('AGENT.md'))
+            ->withMessages([...$messages, $message])
+            ->withTools([
+                new GetTimeTool,
+                new CreateFileTool,
+                new ReadFileTool,
+                new ListFilesTool,
+                new ListDirectoriesTool,
+                new EditFileTool,
+                new ExecuteCommandTool,
+                new SearchFileInCodebase,
+            ])
+            ->asText();
+    }
+
+    private function toolOutput(Step $step)
+    {
+        $toolCall = $step->toolCalls[0];
+        info(sprintf('[Tool] %s(%s)', $toolCall->name, json_encode($toolCall->arguments())));
+
+        $toolResult = $step->toolResults[0];
+        info(sprintf('[Tool Result] %s -> %s', $toolResult->toolName, $toolResult->result));
+    }
+
+    private function llmOutput(Step $step): void
+    {
+        $reasoning = collect($step->messages)->last()->additionalContent['reasoning'] ?? null;
+
+        if ($reasoning) {
+            note($this->gray("Reasoning: {$reasoning}"));
         }
 
-        if ($response->hasMessage()) {
-            note("\033[38;5;208mLLM:\033[0m {$response->message()}");
+        if ($step->text) {
+            note("\033[38;5;208mLLM:\033[0m {$step->text}");
         }
     }
 }

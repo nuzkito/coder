@@ -3,35 +3,33 @@
 namespace App\Tools;
 
 use Illuminate\Support\Facades\Storage;
+use Prism\Prism\Tool;
 
-final class CreateFileTool implements ToolInterface
+final class CreateFileTool extends Tool
 {
-    public string $name = 'create_file';
-
-    public string $description = 'Creates a file in the user\'s filesystem.';
-
-    public array $schema = [
-        'type' => 'object',
-        'properties' => [
-            'path' => [
-                'type' => 'string',
-                'description' => 'Relative pathname of the file to create.',
-            ],
-            'content' => [
-                'type' => 'string',
-                'description' => 'The content of the file.',
-            ],
-        ],
-        'required' => ['path', 'content'],
-    ];
-
-    public function execute(array $arguments): ToolResult
+    public function __construct()
     {
-        $success = Storage::put($arguments['path'], $arguments['content']);
+        $this->as('create_file')
+            ->for('Creates a file in the user\'s filesystem')
+            ->withStringParameter(
+                name: 'path',
+                description: 'Relative pathname of the file to create.',
+                required: true,
+            )
+            ->withStringParameter(
+                name: 'content',
+                description: 'The content of the file.',
+                required: true,
+            )
+            ->using($this);
+    }
 
-        return new ToolResult(
-            content: $success ? "File at {$arguments['path']} has been created." : "There was a problem creating {$arguments['path']}.",
-            description: $success ? "Created file `{$arguments['path']}`." : "Error creating file `{$arguments['path']}`.",
-        );
+    public function __invoke(string $path, string $content): string
+    {
+        $success = Storage::put($path, $content);
+
+        return json_encode([
+            'success' => $success,
+        ]);
     }
 }

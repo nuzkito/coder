@@ -5,38 +5,31 @@ namespace App\Tools;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use League\Flysystem\StorageAttributes;
+use Prism\Prism\Tool;
 
-final class SearchFileInCodebase implements ToolInterface
+final class SearchFileInCodebase extends Tool
 {
-    public string $name = 'search_file_in_codebase';
+    public function __construct()
+    {
+        $this->as('search_file_in_codebase')
+            ->for('Search a file in the codebase. It return the paths of possible coincidences')
+            ->withStringParameter(
+                name: 'name',
+                description: 'Name of file to search.',
+                required: true,
+            )
+            ->using($this);
+    }
 
-    public string $description = 'Search a file in the codebase. It return the paths of possible coincidences.';
-
-    public array $schema = [
-        'type' => 'object',
-        'properties' => [
-            'name' => [
-                'type' => 'string',
-                'description' => 'Name of file to search.',
-            ],
-        ],
-        'required' => ['name'],
-    ];
-
-    public function execute(array $arguments): ToolResult
+    public function __invoke(string $name): string
     {
         $paths = Storage::listContents(location: '.', deep: true)
-            ->filter(fn (StorageAttributes $attributes) => Str::of($attributes->path())->afterLast('/')->contains($arguments['name']))
+            ->filter(fn (StorageAttributes $attributes) => Str::of($attributes->path())->afterLast('/')->contains($name))
             ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
             ->sortByPath()
             ->map(fn (StorageAttributes $attributes) => $attributes->path())
             ->toArray();
 
-        $result = collect($paths)->implode(PHP_EOL);
-
-        return new ToolResult(
-            content: $result,
-            description: "Searched for file `{$arguments['name']}`.",
-        );
+        return collect($paths)->implode(PHP_EOL);
     }
 }

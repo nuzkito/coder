@@ -3,30 +3,23 @@
 namespace App\Tools;
 
 use Illuminate\Support\Facades\Storage;
+use Prism\Prism\Tool;
 
-final class ListDirectoriesTool implements ToolInterface
+final class ListDirectoriesTool extends Tool
 {
-    public string $name = 'list_directories';
-
-    public string $description = 'List directories of the filesystem.';
-
-    public array $schema = [
-        'type' => 'object',
-        'properties' => [
-            'path' => [
-                'type' => 'string',
-                'description' => 'Relative pathname of the directory to read. If path is not defined, it will use the actual working directory.',
-            ],
-        ],
-    ];
-
-    public function execute(array $arguments): ToolResult
+    public function __construct()
     {
-        $result = collect(Storage::directories($arguments['path'] ?? null))->implode("\n");
+        $this->as('list_directories')
+            ->for('List directories of the filesystem')
+            ->withStringParameter(
+                name: 'path',
+                description: 'Relative pathname of the directory to read. If path is not defined, it will use the actual working directory.',
+            )
+            ->using($this);
+    }
 
-        return new ToolResult(
-            content: $result,
-            description: "Listed directories in `{$arguments['path']}`.",
-        );
+    public function __invoke(?string $path): string
+    {
+        return collect(Storage::directories($path ?? null))->implode("\n");
     }
 }

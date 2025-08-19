@@ -2,21 +2,19 @@
 
 namespace App\Tools;
 
-final class GetTimeTool implements ToolInterface
+use Prism\Prism\Tool;
+
+final class GetTimeTool extends Tool
 {
-    public string $name = 'get_time';
-
-    public string $description = 'Get the actual time from the user\'s computer.';
-
-    public array $schema = [];
-
-    public function execute(array $arguments): ToolResult
+    public function __construct()
     {
-        $time = now()->timezone('Europe/Madrid')->format('H:i:s');
+        $this->as('get_time')
+            ->for('Get the actual time from the user\'s computer')
+            ->using($this);
+    }
 
-        return new ToolResult(
-            content: $time,
-            description: 'Getting actual time',
-        );
+    public function __invoke(): string
+    {
+        return now()->timezone('Europe/Madrid')->format('H:i:s');
     }
 }

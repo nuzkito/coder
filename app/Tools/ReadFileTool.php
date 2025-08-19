@@ -3,36 +3,34 @@
 namespace App\Tools;
 
 use Illuminate\Support\Facades\Storage;
+use Prism\Prism\Tool;
 
-final class ReadFileTool implements ToolInterface
+final class ReadFileTool extends Tool
 {
-    public string $name = 'read_file';
-
-    public string $description = 'Reads the content of a file.';
-
-    public array $schema = [
-        'type' => 'object',
-        'properties' => [
-            'path' => [
-                'type' => 'string',
-                'description' => 'The relative path of the file to read. The tool does not support absolute paths.',
-            ],
-        ],
-        'required' => ['path'],
-    ];
-
-    public function execute(array $arguments): ToolResult
+    public function __construct()
     {
-        if (Storage::exists($arguments['path'])) {
-            return new ToolResult(
-                content: Storage::get($arguments['path']),
-                description: "Read file `{$arguments['path']}`.",
-            );
+        $this->as('read_file')
+            ->for('Reads the content of a file')
+            ->withStringParameter(
+                name: 'path',
+                description: 'The relative path of the file to read. The tool does not support absolute paths.',
+                required: true,
+            )
+            ->using($this);
+    }
+
+    public function __invoke(string $path): string
+    {
+        if (Storage::exists($path)) {
+            return json_encode([
+                'content' => Storage::get($path),
+                'description' => "Read file `{$path}`.",
+            ]);
         }
 
-        return new ToolResult(
-            content: '',
-            description: "File `{$arguments['path']}` not found.",
-        );
+        return json_encode([
+            'content' => '',
+            'description' => "File `{$path}` not found.",
+        ]);
     }
 }

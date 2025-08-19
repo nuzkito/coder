@@ -3,31 +3,23 @@
 namespace App\Tools;
 
 use Illuminate\Support\Facades\Storage;
+use Prism\Prism\Tool;
 
-final class ListFilesTool implements ToolInterface
+final class ListFilesTool extends Tool
 {
-    public string $name = 'list_files';
-
-    public string $description = 'List files of the filesystem.';
-
-    public array $schema = [
-        'type' => 'object',
-        'properties' => [
-            'path' => [
-                'type' => 'string',
-                'description' => 'Relative pathname of the directory to read. If path is not defined, it will use the actual working directory.',
-            ],
-        ],
-    ];
-
-    public function execute(array $arguments): ToolResult
+    public function __construct()
     {
-        $path = $arguments['path'] ?? './';
-        $result = collect(Storage::files($path))->implode("\n");
+        $this->as('list_files')
+            ->for('List files of the filesystem')
+            ->withStringParameter(
+                name: 'path',
+                description: 'Relative pathname of the directory to read. If path is not defined, it will use the actual working directory.',
+            )
+            ->using($this);
+    }
 
-        return new ToolResult(
-            content: $result,
-            description: "Listed files in `{$path}`.",
-        );
+    public function __invoke(?string $path = '.'): string
+    {
+        return collect(Storage::files($path))->implode("\n");
     }
 }

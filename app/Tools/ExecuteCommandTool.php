@@ -3,33 +3,26 @@
 namespace App\Tools;
 
 use Illuminate\Support\Facades\Process;
+use Prism\Prism\Tool;
 
-final class ExecuteCommandTool implements ToolInterface
+final class ExecuteCommandTool extends Tool
 {
-    public string $name = 'execute_command';
-
-    public string $description = 'Executes a command line process in the user\'s system. Some commands may return their output in ANSI format, which includes color codes and formatting. When this happens, you should use appropriate flags to disable ANSI formatting and return plain text output when possible.';
-
-    public array $schema = [
-        'type' => 'object',
-        'properties' => [
-            'command' => [
-                'type' => 'string',
-                'description' => 'The command to execute in the system.',
-            ],
-        ],
-        'required' => ['command'],
-    ];
-
-    public function execute(array $arguments): ToolResult
+    public function __construct()
     {
-        $processResult = Process::run($arguments['command']);
+        $this->as('execute_command')
+            ->for('Executes a command line process in the user\'s system')
+            ->withStringParameter(
+                name: 'command',
+                description: 'The command to execute in the system. Some commands may return their output in ANSI format, which includes color codes and formatting. When this happens, you should use appropriate flags to disable ANSI formatting and return plain text output when possible.',
+                required: true,
+            )
+            ->using($this);
+    }
 
-        $result = mb_convert_encoding($processResult->output(), 'UTF-8', 'ISO-8859-1');
+    public function __invoke(string $command): string
+    {
+        $processResult = Process::run($command);
 
-        return new ToolResult(
-            content: $result,
-            description: "Executed `{$processResult->command()}`",
-        );
+        return mb_convert_encoding($processResult->output(), 'UTF-8', 'ISO-8859-1');
     }
 }
