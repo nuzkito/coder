@@ -75,7 +75,7 @@ final class Coder extends Command
         return Prism::text()
             ->using(provider: 'lmstudio', model: env('LLM_MODEL'))
             ->withMaxSteps(100)
-            ->withSystemPrompt(Storage::disk('app')->get('AGENT.md'))
+            ->withSystemPrompt(Storage::disk('app')->get('AGENTS.md'))
             ->withMessages([...$messages, $message])
             ->withTools([
                 new GetTimeTool,
