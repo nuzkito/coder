@@ -26,7 +26,7 @@ final class CreateFileTool extends Tool
 
     public function __invoke(string $path, string $content): string
     {
-        $success = Storage::put($path, $content);
+        $success = Storage::disk('current')->put($path, $content);
 
         return json_encode([
             'success' => $success,

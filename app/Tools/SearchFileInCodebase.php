@@ -23,7 +23,7 @@ final class SearchFileInCodebase extends Tool
 
     public function __invoke(string $name): string
     {
-        $paths = Storage::listContents(location: '.', deep: true)
+        $paths = Storage::disk('current')->listContents(location: '.', deep: true)
             ->filter(fn (StorageAttributes $attributes) => Str::of($attributes->path())->afterLast('/')->contains($name))
             ->filter(fn (StorageAttributes $attributes) => $attributes->isFile())
             ->sortByPath()

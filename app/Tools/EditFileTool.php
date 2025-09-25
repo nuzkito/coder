@@ -32,10 +32,10 @@ final class EditFileTool extends Tool
 
     public function __invoke(string $path, string $search, string $replace): string
     {
-        $content = Storage::get($path);
+        $content = Storage::disk('current')->get($path);
         $newContent = Str::of($content)->replace($search, $replace);
 
-        $success = Storage::put($path, $newContent);
+        $success = Storage::disk('current')->put($path, $newContent);
 
         return json_encode([
             'success' => $success,

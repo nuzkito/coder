@@ -20,6 +20,6 @@ final class ListDirectoriesTool extends Tool
 
     public function __invoke(?string $path): string
     {
-        return collect(Storage::directories($path ?? null))->implode("\n");
+        return collect(Storage::disk('current')->directories($path ?? null))->implode("\n");
     }
 }

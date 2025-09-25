@@ -21,9 +21,9 @@ final class ReadFileTool extends Tool
 
     public function __invoke(string $path): string
     {
-        if (Storage::exists($path)) {
+        if (Storage::disk('current')->exists($path)) {
             return json_encode([
-                'content' => Storage::get($path),
+                'content' => Storage::disk('current')->get($path),
                 'description' => "Read file `{$path}`.",
             ]);
         }

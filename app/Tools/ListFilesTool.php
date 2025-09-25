@@ -20,6 +20,6 @@ final class ListFilesTool extends Tool
 
     public function __invoke(?string $path = '.'): string
     {
-        return collect(Storage::files($path))->implode("\n");
+        return collect(Storage::disk('current')->files($path))->implode("\n");
     }
 }
